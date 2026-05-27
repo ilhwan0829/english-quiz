@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>영어 단어 퀴즈 - 서울용동초등학교</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);min-height:100vh;color:#e2e8f0}
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+.center{justify-content:center}
+.card{background:rgba(30,41,59,0.8);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,0.1);border-radius:24px;padding:40px 28px;width:100%;max-width:500px;box-shadow:0 25px 50px rgba(0,0,0,0.4)}
+.card-sm{padding:48px 40px;max-width:420px}
+input[type=text],input[type=number]{width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(148,163,184,0.2);background:rgba(15,23,42,0.6);color:#e2e8f0;font-size:16px;outline:none;font-family:inherit}
+input:focus{border-color:#818cf8}
+.btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 8px 24px rgba(124,58,237,0.3)}
+.btn-orange{background:linear-gradient(135deg,#f59e0b,#f97316);color:#fff;box-shadow:0 8px 24px rgba(245,158,11,0.3)}
+.btn-blue{background:linear-gradient(135deg,#6366f1,#3b82f6);color:#fff;box-shadow:0 6px 20px rgba(99,102,241,0.3)}
+.btn-ghost{background:transparent;border:1px solid rgba(148,163,184,0.2);color:#94a3b8;font-weight:600}
+.btn:disabled{background:rgba(100,116,139,0.2);color:#64748b;cursor:not-allowed;box-shadow:none}
+.option-btn{padding:16px 20px;border-radius:14px;background:rgba(15,23,42,0.5);border:1px solid rgba(148,163,184,0.15);color:#e2e8f0;font-size:16px;font-weight:600;cursor:pointer;text-align:left;transition:all .15s;font-family:inherit;width:100%}
+.option-btn:hover:not(:disabled){border-color:rgba(99,102,241,0.4)}
+.option-btn.selected{background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.5);color:#a5b4fc}
+.option-btn.correct{background:rgba(34,197,94,0.15);border-color:rgba(34,197,94,0.5);color:#4ade80}
+.option-btn.wrong{background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.5);color:#f87171}
+.label{color:#94a3b8;font-size:13px;font-weight:600;margin-bottom:6px;display:block}
+.muted{color:#94a3b8;font-size:13px}
+.gap-sm{display:flex;flex-direction:column;gap:10px}
+.gap-md{display:flex;flex-direction:column;gap:16px}
+.hidden{display:none}
+.spelling-input{padding:16px 20px;border-radius:14px;border:1px solid rgba(148,163,184,0.2);background:rgba(15,23,42,0.6);color:#e2e8f0;font-size:20px;text-align:center;font-weight:700;letter-spacing:3px;outline:none;width:100%;font-family:inherit}
+.spelling-input.correct-border{border:2px solid #22c55e}
+.spelling-input.wrong-border{border:2px solid #ef4444}
+</style>
+</head>
+<body>
+<div id="app" class="center"></div>
+
+<script>
+// ===== CONFIG =====
+const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwYdXg0_CxPl6mifOLExacje0iIbwX1Sktl4vf3lLANDzlTxGKhTWt44DLrRNJJ3KjQsg/exec";
+const TOTAL_QUESTIONS = 15;
+
+// ===== WORD DATA =====
+const WORD_DATA = {
+  1: [
+    {en:"hi",ko:"안녕"},{en:"bye",ko:"안녕 (헤어질 때)"},{en:"cat",ko:"고양이"},{en:"dog",ko:"개"},{en:"pig",ko:"돼지"},{en:"cow",ko:"소"},{en:"bird",ko:"새"},{en:"lion",ko:"사자"},{en:"ball",ko:"공"},{en:"book",ko:"책"},{en:"pen",ko:"펜"},{en:"pencil",ko:"연필"},{en:"cup",ko:"컵"},{en:"doll",ko:"인형"},{en:"bike",ko:"자전거"},{en:"sit",ko:"앉다"},{en:"stand",ko:"서다"},{en:"open",ko:"열다"},{en:"close",ko:"닫다"},{en:"run",ko:"달리다"},{en:"jump",ko:"뛰다"},{en:"swim",ko:"수영하다"},{en:"sing",ko:"노래하다"},{en:"dance",ko:"춤추다"},{en:"red",ko:"빨간색"},{en:"blue",ko:"파란색"},{en:"green",ko:"초록색"},{en:"yellow",ko:"노란색"},{en:"pink",ko:"분홍색"},{en:"mom",ko:"엄마"},{en:"dad",ko:"아빠"},{en:"sister",ko:"여동생, 언니, 누나"},{en:"brother",ko:"남동생, 오빠, 형"},{en:"tree",ko:"나무"},{en:"banana",ko:"바나나"},{en:"orange",ko:"오렌지"},{en:"apple",ko:"사과"},{en:"big",ko:"큰"},{en:"small",ko:"작은"},{en:"tall",ko:"키가 큰"},{en:"hot",ko:"더운, 뜨거운"},{en:"cold",ko:"추운"},{en:"happy",ko:"행복한"},{en:"eat",ko:"먹다"},{en:"cool",ko:"멋진, 시원한"},{en:"cute",ko:"귀여운"},{en:"family",ko:"가족"},{en:"bed",ko:"침대"},{en:"egg",ko:"달걀"},{en:"milk",ko:"우유"},{en:"door",ko:"문"},{en:"hand",ko:"손"},{en:"head",ko:"머리"},{en:"eye",ko:"눈"},{en:"ear",ko:"귀"},{en:"mouth",ko:"입"},{en:"fish",ko:"물고기"},{en:"box",ko:"상자"},{en:"bag",ko:"가방"},{en:"water",ko:"물"},{en:"star",ko:"별"},{en:"sun",ko:"태양"},{en:"rain",ko:"비"},{en:"snow",ko:"눈(날씨)"},{en:"hat",ko:"모자"},{en:"shoe",ko:"신발"},{en:"cake",ko:"케이크"},{en:"nose",ko:"코"},{en:"leg",ko:"다리"},{en:"fine",ko:"좋은"}
+  ],
+  2: [
+    {en:"come",ko:"오다"},{en:"meet",ko:"만나다"},{en:"like",ko:"좋아하다"},{en:"want",ko:"원하다"},{en:"buy",ko:"사다"},{en:"have",ko:"가지다"},{en:"make",ko:"만들다"},{en:"draw",ko:"그리다"},{en:"read",ko:"읽다"},{en:"cook",ko:"요리하다"},{en:"find",ko:"찾다"},{en:"wait",ko:"기다리다"},{en:"clean",ko:"깨끗한, 청소하다"},{en:"wash",ko:"씻다"},{en:"sleep",ko:"잠자다"},{en:"watch",ko:"보다, 시계"},{en:"play",ko:"놀다, 연주하다"},{en:"give",ko:"주다"},{en:"take",ko:"가져가다"},{en:"birthday",ko:"생일"},{en:"party",ko:"파티"},{en:"today",ko:"오늘"},{en:"lunch",ko:"점심"},{en:"picture",ko:"그림, 사진"},{en:"homework",ko:"숙제"},{en:"doctor",ko:"의사"},{en:"nurse",ko:"간호사"},{en:"teacher",ko:"선생님"},{en:"uncle",ko:"삼촌"},{en:"skirt",ko:"치마"},{en:"car",ko:"자동차"},{en:"toy",ko:"장난감"},{en:"brown",ko:"갈색"},{en:"gray",ko:"회색"},{en:"day",ko:"날, 하루"},{en:"park",ko:"공원"},{en:"movie",ko:"영화"},{en:"music",ko:"음악"},{en:"time",ko:"시각, 시간"},{en:"morning",ko:"아침"},{en:"night",ko:"밤"},{en:"dinner",ko:"저녁 식사"},{en:"fun",ko:"재미있는"},{en:"umbrella",ko:"우산"},{en:"bottle",ko:"병"},{en:"chair",ko:"의자"},{en:"table",ko:"탁자"},{en:"flower",ko:"꽃"},{en:"house",ko:"집"},{en:"friend",ko:"친구"},{en:"school",ko:"학교"},{en:"class",ko:"학급, 수업"},{en:"white",ko:"하얀색"},{en:"black",ko:"검정색"},{en:"desk",ko:"책상"},{en:"window",ko:"창문"},{en:"clock",ko:"시계"},{en:"food",ko:"음식"},{en:"game",ko:"놀이, 게임"},{en:"name",ko:"이름"},{en:"room",ko:"방"},{en:"song",ko:"노래"},{en:"boy",ko:"소년"},{en:"girl",ko:"소녀"}
+  ],
+  3: [
+    {en:"country",ko:"나라"},{en:"beautiful",ko:"아름다운"},{en:"cousin",ko:"사촌"},{en:"ride",ko:"타다"},{en:"team",ko:"팀"},{en:"together",ko:"함께"},{en:"album",ko:"앨범"},{en:"collect",ko:"모으다"},{en:"kitchen",ko:"주방"},{en:"map",ko:"지도"},{en:"scissors",ko:"가위"},{en:"spoon",ko:"숟가락"},{en:"borrow",ko:"빌리다"},{en:"bring",ko:"가져오다"},{en:"animal",ko:"동물"},{en:"energy",ko:"에너지, 힘"},{en:"grow",ko:"기르다"},{en:"lake",ko:"호수"},{en:"piano",ko:"피아노"},{en:"problem",ko:"문제"},{en:"vegetable",ko:"야채"},{en:"walk",ko:"걷다"},{en:"airplane",ko:"비행기"},{en:"bear",ko:"곰"},{en:"boat",ko:"배(탈것)"},{en:"key",ko:"열쇠"},{en:"phone",ko:"전화기"},{en:"textbook",ko:"교과서"},{en:"tiger",ko:"호랑이"},{en:"camping",ko:"캠핑"},{en:"library",ko:"도서관"},{en:"market",ko:"시장"},{en:"need",ko:"필요하다"},{en:"parent",ko:"부모님"},{en:"present",ko:"선물"},{en:"shop",ko:"상점"},{en:"ticket",ko:"표"},{en:"tomorrow",ko:"내일"},{en:"week",ko:"주"},{en:"beach",ko:"해변"},{en:"delicious",ko:"맛있는"},{en:"join",ko:"참여하다"},{en:"learn",ko:"배우다"},{en:"science",ko:"과학"},{en:"summer",ko:"여름"},{en:"visit",ko:"방문하다"},{en:"chocolate",ko:"초콜릿"},{en:"festival",ko:"축제"},{en:"grape",ko:"포도"},{en:"sea",ko:"바다"},{en:"weekend",ko:"주말"},{en:"yesterday",ko:"어제"},{en:"fruit",ko:"과일"},{en:"meat",ko:"고기"},{en:"sandwich",ko:"샌드위치"},{en:"sell",ko:"팔다"},{en:"cheap",ko:"저렴한"},{en:"glasses",ko:"안경"},{en:"pants",ko:"바지"},{en:"socks",ko:"양말"},{en:"early",ko:"이른"},{en:"fresh",ko:"신선한"},{en:"hour",ko:"시간"},{en:"job",ko:"직업"},{en:"practice",ko:"연습"},{en:"study",ko:"공부하다"},{en:"breakfast",ko:"아침 식사"},{en:"difficult",ko:"어려운"},{en:"favorite",ko:"가장 좋아하는"},{en:"math",ko:"수학"},{en:"speak",ko:"말하다"},{en:"subject",ko:"과목"},{en:"dream",ko:"꿈"},{en:"future",ko:"미래"},{en:"people",ko:"사람들"},{en:"story",ko:"이야기"},{en:"train",ko:"기차"},{en:"travel",ko:"여행"}
+  ],
+  4: [
+    {en:"club",ko:"동아리"},{en:"drum",ko:"드럼"},{en:"first",ko:"첫째"},{en:"grade",ko:"학년"},{en:"guitar",ko:"기타"},{en:"hard",ko:"어려운, 열심히"},{en:"luck",ko:"행운"},{en:"second",ko:"둘째"},{en:"show",ko:"보여주다"},{en:"spell",ko:"철자를 말하다"},{en:"third",ko:"셋째"},{en:"wear",ko:"입다"},{en:"bright",ko:"밝은"},{en:"card",ko:"카드"},{en:"clear",ko:"맑은"},{en:"fall",ko:"가을, 떨어지다"},{en:"field",ko:"들판"},{en:"river",ko:"강"},{en:"season",ko:"계절"},{en:"sky",ko:"하늘"},{en:"spring",ko:"봄"},{en:"trip",ko:"여행"},{en:"warm",ko:"따뜻한"},{en:"winter",ko:"겨울"},{en:"classroom",ko:"교실"},{en:"floor",ko:"층, 마루"},{en:"care",ko:"돌보다"},{en:"help",ko:"돕다"},{en:"January",ko:"1월"},{en:"February",ko:"2월"},{en:"March",ko:"3월"},{en:"April",ko:"4월"},{en:"May",ko:"5월"},{en:"June",ko:"6월"},{en:"July",ko:"7월"},{en:"August",ko:"8월"},{en:"September",ko:"9월"},{en:"October",ko:"10월"},{en:"November",ko:"11월"},{en:"December",ko:"12월"},{en:"contest",ko:"대회"},{en:"daughter",ko:"딸"},{en:"farmer",ko:"농부"},{en:"write",ko:"쓰다"},{en:"curly",ko:"곱슬곱슬한"},{en:"dress",ko:"드레스"},{en:"short",ko:"짧은"},{en:"straight",ko:"곧은"},{en:"brush",ko:"칫솔질하다"},{en:"drink",ko:"마시다"},{en:"exercise",ko:"운동하다"},{en:"habit",ko:"습관"},{en:"juice",ko:"주스"},{en:"during",ko:"~동안"},{en:"because",ko:"~때문에"},{en:"again",ko:"다시"},{en:"faster",ko:"더 빠른"},{en:"longer",ko:"더 긴"},{en:"palace",ko:"궁전"},{en:"stronger",ko:"더 힘센"},{en:"taller",ko:"더 키가 큰"},{en:"than",ko:"~보다"},{en:"tower",ko:"탑"},{en:"behind",ko:"~뒤에"},{en:"between",ko:"~사이에"},{en:"subway",ko:"지하철"},{en:"restaurant",ko:"식당"},{en:"sweet",ko:"달콤한"},{en:"catch",ko:"잡다"},{en:"paper",ko:"종이"},{en:"stay",ko:"머무르다"},{en:"stone",ko:"돌"},{en:"throw",ko:"던지다"},{en:"traditional",ko:"전통의"},{en:"forest",ko:"숲"},{en:"forget",ko:"잊다"},{en:"light",ko:"불, 전등"},{en:"recycle",ko:"재활용하다"},{en:"save",ko:"절약하다"},{en:"stairs",ko:"계단"}
+  ],
+  5: [
+    {en:"believe",ko:"믿다"},{en:"different",ko:"다른"},{en:"interesting",ko:"흥미있는"},{en:"expensive",ko:"비싼"},{en:"boring",ko:"지루한"},{en:"scientist",ko:"과학자"},{en:"invent",ko:"발명하다"},{en:"build",ko:"건물을 짓다"},{en:"world",ko:"세계"},{en:"young",ko:"어린, 젊은"},{en:"real",ko:"진실의"},{en:"great",ko:"대단한"},{en:"answer",ko:"대답하다"},{en:"heavy",ko:"무거운"},{en:"strong",ko:"강한, 힘센"},{en:"fast",ko:"빠른"},{en:"smart",ko:"영리한"},{en:"same",ko:"같은"},{en:"healthy",ko:"건강한"},{en:"often",ko:"자주"},{en:"every",ko:"모든"},{en:"lesson",ko:"수업"},{en:"airport",ko:"공항"},{en:"hospital",ko:"병원"},{en:"museum",ko:"박물관"},{en:"garden",ko:"정원"},{en:"surprise",ko:"놀라다"},{en:"finish",ko:"끝내다"},{en:"special",ko:"특별한"},{en:"vacation",ko:"방학, 휴가"},{en:"arrive",ko:"도착하다"},{en:"calendar",ko:"달력"},{en:"chance",ko:"기회"},{en:"change",ko:"바꾸다"},{en:"danger",ko:"위험"},{en:"enough",ko:"충분한"},{en:"example",ko:"예, 보기"},{en:"follow",ko:"따르다"},{en:"happen",ko:"발생하다"},{en:"hope",ko:"희망"},{en:"island",ko:"섬"},{en:"keep",ko:"지키다"},{en:"laugh",ko:"웃다"},{en:"mountain",ko:"산"},{en:"noise",ko:"소음"},{en:"peace",ko:"평화"},{en:"question",ko:"질문"},{en:"remember",ko:"기억하다"},{en:"safe",ko:"안전한"},{en:"strange",ko:"이상한"},{en:"village",ko:"마을"},{en:"weather",ko:"날씨"},{en:"wonder",ko:"궁금하다"},{en:"address",ko:"주소"},{en:"corner",ko:"모퉁이"},{en:"once",ko:"한 번"},{en:"twice",ko:"두 번"}
+  ]
+};
+
+const LEVEL_LABELS = {1:"3학년",2:"4학년",3:"5학년",4:"6학년",5:"심화"};
+const LEVEL_COLORS = {1:"#22c55e",2:"#3b82f6",3:"#a855f7",4:"#f59e0b",5:"#ef4444"};
+
+// ===== STATE =====
+let state = {
+  screen:"login", studentName:"", studentNumber:"",
+  currentLevel:3, questionIndex:0, question:null,
+  selected:null, spellingInput:"", showFeedback:false, isCorrect:false,
+  results:[], streak:0, levelHistory:[],
+  retryWords:[], retryIndex:0, retryRound:1,
+  retryStillWrong:[], retryResults:[], submitStatus:"idle"
+};
+
+// ===== UTILS =====
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function getRandWords(lv,n,ex){let p=WORD_DATA[lv]||[];if(ex)p=p.filter(w=>w.en!==ex.en);return shuffle(p).slice(0,n)}
+function findLv(w){for(let l=1;l<=5;l++)if(WORD_DATA[l].some(x=>x.en===w.en))return l;return 3}
+
+function genQ(lv,fw){
+  let pool=WORD_DATA[lv];if(!pool||!pool.length)return null;
+  let t=fw||pool[Math.floor(Math.random()*pool.length)];
+  let tp;
+  if(fw){tp=Math.random()<.5?0:1}
+  else if(lv<=2){tp=Math.random()<.5?0:1}
+  else{let r=Math.random();tp=r<.4?0:r<.75?1:2}
+  if(tp<=1){
+    let d=getRandWords(lv,3,t);
+    if(d.length<3){let adj=lv<5?lv+1:lv-1;d=[...d,...getRandWords(adj,3-d.length,t)]}
+    let opts=shuffle([t,...d]);
+    return{type:tp,word:t,options:opts,answer:tp===0?t.ko:t.en,level:lv}
+  }
+  return{type:2,word:t,answer:t.en.toLowerCase(),level:lv}
+}
+
+// ===== GOOGLE SHEETS =====
+async function submitToSheets(){
+  if(!APPS_SCRIPT_URL)return;
+  let s=state;
+  let uw=s.results.filter(r=>!r.correct).map(r=>r.word).filter((w,i,a)=>a.findIndex(x=>x.en===w.en)===i);
+  let acc=s.results.length?Math.round(s.results.filter(r=>r.correct).length/s.results.length*100):0;
+  let tc=s.results.filter(r=>r.correct).length;
+  let ml=s.levelHistory.length?Math.max(...s.levelHistory):3;
+  let gr=acc>=90?"S":acc>=75?"A":acc>=60?"B":acc>=40?"C":"D";
+  let payload={
+    name:s.studentName,number:s.studentNumber,accuracy:acc,
+    totalCorrect:tc,totalQuestions:TOTAL_QUESTIONS,grade:gr,
+    maxLevel:ml,finalLevel:s.currentLevel,
+    retryRounds:uw.length>0?s.retryRound:0,
+    wrongWords:uw.map(w=>({en:w.en,ko:w.ko})),
+    levelHistory:s.levelHistory,
+    details:s.results.map(r=>({word:r.word.en,meaning:r.word.ko,correct:r.correct,level:r.level,type:r.type}))
+  };
+  state.submitStatus="sending";render();
+  try{
+    let url=APPS_SCRIPT_URL+"?data="+encodeURIComponent(JSON.stringify(payload));
+    await fetch(url,{mode:"no-cors"});
+    state.submitStatus="success";
+  }catch(e){
+    console.error(e);
+    state.submitStatus="error";
+  }
+  render();
+}
+
+// ===== ACTIONS =====
+function startQuiz(){
+  if(!state.studentName.trim()||!state.studentNumber.trim())return;
+  Object.assign(state,{screen:"quiz",questionIndex:0,results:[],streak:0,currentLevel:3,
+    levelHistory:[3],retryWords:[],retryIndex:0,retryRound:1,retryStillWrong:[],retryResults:[],
+    submitStatus:"idle",selected:null,spellingInput:"",showFeedback:false});
+  state.question=genQ(3);render();
+}
+
+function checkAnswer(){
+  if(state.showFeedback)return;
+  let q=state.question,correct;
+  if(q.type===2)correct=state.spellingInput.trim().toLowerCase()===q.answer;
+  else correct=state.selected===q.answer;
+  state.isCorrect=correct;state.showFeedback=true;
+  state.results.push({word:q.word,correct,level:q.level,type:q.type});
+  let ns=correct?(state.streak>=0?state.streak+1:1):(state.streak<=0?state.streak-1:-1);
+  let nl=state.currentLevel;
+  if(ns>=3&&nl<5){nl++;ns=0}else if(ns<=-2&&nl>1){nl--;ns=0}
+  state.streak=ns;state.currentLevel=nl;state.levelHistory.push(nl);
+  render();
+}
+
+function nextQuestion(){
+  let ni=state.questionIndex+1;
+  if(ni>=TOTAL_QUESTIONS){
+    let wrong=state.results.filter(r=>!r.correct).map(r=>r.word);
+    let uniq=wrong.filter((w,i,a)=>a.findIndex(x=>x.en===w.en)===i);
+    if(uniq.length>0){
+      Object.assign(state,{retryWords:shuffle([...uniq]),retryIndex:0,retryRound:1,retryStillWrong:[],retryResults:[],screen:"retry_intro"});
+    }else{state.screen="result";submitToSheets()}
+    render();return;
+  }
+  Object.assign(state,{questionIndex:ni,selected:null,spellingInput:"",showFeedback:false});
+  state.question=genQ(state.currentLevel);render();
+}
+
+function startRetry(){
+  state.screen="retry";let w=state.retryWords[0];
+  state.question=genQ(findLv(w),w);
+  state.selected=null;state.spellingInput="";state.showFeedback=false;state.isCorrect=false;
+  render();
+}
+
+function checkRetryAnswer(){
+  if(state.showFeedback)return;
+  let q=state.question,correct;
+  if(q.type===2)correct=state.spellingInput.trim().toLowerCase()===q.answer;
+  else correct=state.selected===q.answer;
+  state.isCorrect=correct;state.showFeedback=true;
+  state.retryResults.push({word:q.word,correct,round:state.retryRound});
+  if(!correct&&!state.retryStillWrong.some(x=>x.en===q.word.en))state.retryStillWrong.push(q.word);
+  render();
+}
+
+function nextRetryQuestion(){
+  let ni=state.retryIndex+1;
+  if(ni>=state.retryWords.length){
+    if(state.retryStillWrong.length>0){
+      state.retryWords=shuffle([...state.retryStillWrong]);
+      state.retryIndex=0;state.retryRound++;state.retryStillWrong=[];
+      state.screen="retry_intro";
+    }else{state.screen="result";submitToSheets()}
+    render();return;
+  }
+  state.retryIndex=ni;let w=state.retryWords[ni];
+  state.question=genQ(findLv(w),w);
+  state.selected=null;state.spellingInput="";state.showFeedback=false;state.isCorrect=false;
+  render();
+}
+
+// ===== RENDER =====
+function h(tag,attrs,...kids){
+  let el=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="style"&&typeof v==="object")Object.assign(el.style,v);
+    else if(k.startsWith("on"))el.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="className")el.className=v;
+    else if(k==="disabled")el.disabled=v;
+    else if(k==="placeholder")el.placeholder=v;
+    else if(k==="type")el.type=v;
+    else if(k==="value")el.value=v;
+    else if(k==="autoComplete")el.autocomplete=v;
+    else el.setAttribute(k,v);
+  });
+  kids.flat().forEach(c=>{if(c!=null)el.append(typeof c==="string"||typeof c==="number"?document.createTextNode(c):c)});
+  return el;
+}
+
+function render(){
+  let app=document.getElementById("app");
+  app.innerHTML="";
+  app.className=state.screen==="login"||state.screen==="retry_intro"?"center":"";
+  
+  if(state.screen==="login")renderLogin(app);
+  else if(state.screen==="retry_intro")renderRetryIntro(app);
+  else if(state.screen==="quiz"||state.screen==="retry")renderQuiz(app);
+  else if(state.screen==="result")renderResult(app);
+}
+
+function renderLogin(app){
+  let card=h("div",{className:"card card-sm"},
+    h("div",{style:{textAlign:"center",marginBottom:"36px"}},
+      h("div",{style:{fontSize:"48px",marginBottom:"12px"}},"📚"),
+      h("h1",{style:{fontSize:"28px",fontWeight:800,background:"linear-gradient(135deg,#c084fc,#818cf8,#60a5fa)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"영어 단어 퀴즈"),
+      h("p",{className:"muted",style:{marginTop:"8px"}},"서울용동초등학교 5학년 2반")
+    ),
+    h("div",{className:"gap-md"},
+      h("div",null,h("label",{className:"label"},"번호"),
+        h("input",{type:"number",value:state.studentNumber,placeholder:"예: 1",onInput:e=>{state.studentNumber=e.target.value}})
+      ),
+      h("div",null,h("label",{className:"label"},"이름"),
+        h("input",{type:"text",value:state.studentName,placeholder:"예: 홍길동",onInput:e=>{state.studentName=e.target.value},onKeydown:e=>{if(e.key==="Enter")startQuiz()}})
+      ),
+      h("button",{className:"btn btn-primary",style:{marginTop:"8px"},onClick:startQuiz},"퀴즈 시작하기 →")
+    ),
+    h("div",{style:{marginTop:"28px",padding:"16px",borderRadius:"12px",background:"rgba(99,102,241,0.08)",border:"1px solid rgba(99,102,241,0.15)"}},
+      h("p",{style:{color:"#a5b4fc",fontSize:"13px",lineHeight:"1.6"}},"✦ 총 "+TOTAL_QUESTIONS+"문제  ✦ 3~6학년 + 심화 단어\n✦ 잘 맞추면 난이도 UP ↑  ✦ 틀리면 난이도 DOWN ↓\n✦ 틀린 단어는 모두 맞출 때까지 다시 풀기!")
+    )
+  );
+  app.append(card);
+}
+
+function renderRetryIntro(app){
+  let rw=state.retryWords;
+  let tags=rw.map(w=>h("span",{style:{padding:"8px 14px",borderRadius:"10px",background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.25)",color:"#fbbf24",fontSize:"14px",fontWeight:600}},w.en));
+  let card=h("div",{className:"card",style:{textAlign:"center"}},
+    h("div",{style:{fontSize:"56px",marginBottom:"16px"}},"🔄"),
+    h("h2",{style:{color:"#f1f5f9",fontSize:"24px",fontWeight:800,marginBottom:"8px"}},state.retryRound===1?"틀린 단어 다시 풀기!":state.retryRound+"라운드 도전!"),
+    h("p",{className:"muted",style:{fontSize:"15px",marginBottom:"28px",lineHeight:"1.6"}},
+      (state.retryRound===1?rw.length+"개의 틀린 단어를 다시 풀어보세요.":"아직 "+rw.length+"개가 남았어요. 다시 도전!")+"\n모두 맞추면 최종 결과를 볼 수 있어요."),
+    h("div",{style:{display:"flex",flexWrap:"wrap",gap:"8px",justifyContent:"center",marginBottom:"28px"}},...tags),
+    h("button",{className:"btn btn-orange",onClick:startRetry},state.retryRound===1?"재도전 시작! →":"다시 도전하기! →")
+  );
+  app.append(card);
+}
+
+function renderQuiz(app){
+  let s=state,q=s.question;if(!q)return;
+  let isRetry=s.screen==="retry";
+  let prog=isRetry?(s.retryIndex/s.retryWords.length*100):(s.questionIndex/TOTAL_QUESTIONS*100);
+  let cur=isRetry?s.retryIndex+1:s.questionIndex+1;
+  let tot=isRetry?s.retryWords.length:TOTAL_QUESTIONS;
+  let tl=["영어 → 뜻","뜻 → 영어","스펠링"];
+  let doChk=isRetry?checkRetryAnswer:checkAnswer;
+  let doNxt=isRetry?nextRetryQuestion:nextQuestion;
+  let canSub=q.type<=1?!!s.selected:!!s.spellingInput.trim();
+
+  let nextLbl;
+  if(isRetry)nextLbl=s.retryIndex+1>=s.retryWords.length?"라운드 완료":"다음 →";
+  else nextLbl=s.questionIndex+1>=TOTAL_QUESTIONS?"다음 단계로":"다음 문제 →";
+
+  // Header
+  let lvColor=LEVEL_COLORS[s.currentLevel];
+  let badge=isRetry?
+    h("span",{style:{color:"#fbbf24",fontSize:"13px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.25)"}},"🔄 재도전 "+(s.retryRound>1?"R"+s.retryRound:"")):
+    h("span",{style:{color:lvColor,fontSize:"13px",fontWeight:700,padding:"4px 10px",borderRadius:"20px",background:lvColor+"15",border:"1px solid "+lvColor+"30"}},"Lv."+s.currentLevel+" "+LEVEL_LABELS[s.currentLevel]);
+
+  let header=h("div",{style:{width:"100%",maxWidth:"500px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}},
+    h("span",{className:"muted"},s.studentNumber+"번 "+s.studentName),badge);
+
+  let progBar=h("div",{style:{width:"100%",maxWidth:"500px",height:"6px",borderRadius:"3px",background:"rgba(148,163,184,0.1)",marginBottom:"8px",overflow:"hidden"}},
+    h("div",{style:{width:prog+"%",height:"100%",background:isRetry?"linear-gradient(90deg,#f59e0b,#f97316)":"linear-gradient(90deg,"+lvColor+",#818cf8)",borderRadius:"3px",transition:"width .5s"}}));
+
+  let progText=h("div",{style:{width:"100%",maxWidth:"500px",display:"flex",justifyContent:"space-between",marginBottom:"24px"}},
+    h("span",{style:{color:"#64748b",fontSize:"12px"}},cur+" / "+tot),
+    h("span",{style:{color:"#64748b",fontSize:"12px"}},tl[q.type]));
+
+  // Question card
+  let prompt=h("div",{style:{textAlign:"center",marginBottom:"32px"}},
+    h("p",{className:"muted",style:{marginBottom:"12px"}},q.type===0?"이 영어 단어의 뜻은?":q.type===1?"이 뜻에 맞는 영어 단어는?":"이 뜻의 영어 단어를 입력하세요"),
+    h("div",{style:{fontSize:q.type===1?"28px":"36px",fontWeight:800,color:"#f1f5f9",letterSpacing:q.type!==1?"2px":"0"}},q.type===0?q.word.en:q.word.ko));
+
+  let choices;
+  if(q.type<=1){
+    choices=h("div",{className:"gap-sm"},...q.options.map((opt,i)=>{
+      let val=q.type===0?opt.ko:opt.en;
+      let cls="option-btn";
+      if(s.selected===val&&!s.showFeedback)cls+=" selected";
+      if(s.showFeedback&&val===q.answer)cls+=" correct";
+      if(s.showFeedback&&s.selected===val&&!s.isCorrect)cls+=" wrong";
+      return h("button",{className:cls,disabled:s.showFeedback,onClick:()=>{if(!s.showFeedback){s.selected=val;render()}}},
+        h("span",{style:{color:"#64748b",marginRight:"12px",fontSize:"14px"}},["A","B","C","D"][i]),val);
+    }));
+  }else{
+    let inp=h("input",{type:"text",className:"spelling-input"+(s.showFeedback?(s.isCorrect?" correct-border":" wrong-border"):""),
+      value:s.spellingInput,disabled:s.showFeedback,placeholder:"영어 단어를 입력하세요",autoComplete:"off",
+      onInput:e=>{s.spellingInput=e.target.value},
+      onKeydown:e=>{if(e.key==="Enter"){if(s.showFeedback)doNxt();else if(s.spellingInput.trim())doChk()}}});
+    let els=[inp];
+    if(s.showFeedback&&!s.isCorrect)els.push(h("p",{style:{textAlign:"center",color:"#f87171",fontSize:"15px"}},"정답: ",h("strong",{style:{color:"#fbbf24",letterSpacing:"2px"}},q.answer)));
+    choices=h("div",{className:"gap-sm"},...els);
+    setTimeout(()=>{if(!s.showFeedback)inp.focus()},50);
+  }
+
+  let feedback=null;
+  if(s.showFeedback){
+    feedback=h("div",{style:{marginTop:"20px",padding:"16px",borderRadius:"12px",background:s.isCorrect?"rgba(34,197,94,0.08)":"rgba(239,68,68,0.08)",border:"1px solid "+(s.isCorrect?"rgba(34,197,94,0.2)":"rgba(239,68,68,0.2)"),textAlign:"center"}},
+      h("span",{style:{fontSize:"24px",display:"block",marginBottom:"4px"}},s.isCorrect?"🎉":"😢"),
+      h("span",{style:{color:s.isCorrect?"#4ade80":"#f87171",fontWeight:700,fontSize:"16px"}},
+        s.isCorrect?(isRetry?"이번엔 맞았어요!":"정답!"):(isRetry?"다음 라운드에서 다시!":"아쉬워요!")),
+      ...(!s.isCorrect&&q.type<=1?[h("p",{className:"muted",style:{marginTop:"8px"}},q.word.en+" = "+q.word.ko)]:[])
+    );
+  }
+
+  let actionBtn;
+  if(!s.showFeedback){
+    actionBtn=h("button",{className:"btn "+(isRetry?"btn-orange":"btn-primary"),disabled:!canSub,onClick:doChk},"확인");
+  }else{
+    actionBtn=h("button",{className:"btn "+(isRetry?"btn-orange":"btn-blue"),onClick:doNxt},nextLbl);
+  }
+
+  let card=h("div",{className:"card"},prompt,choices,feedback,h("div",{style:{marginTop:"20px"}},actionBtn));
+  app.append(header,progBar,progText,card);
+}
+
+function renderResult(app){
+  let s=state;
+  let tc=s.results.filter(r=>r.correct).length;
+  let acc=Math.round(tc/s.results.length*100);
+  let ml=Math.max(...s.levelHistory);
+  let gr=acc>=90?"S":acc>=75?"A":acc>=60?"B":acc>=40?"C":"D";
+  let gc={S:"#fbbf24",A:"#22c55e",B:"#3b82f6",C:"#a855f7",D:"#ef4444"};
+  let gm={S:"완벽해요! 최고!",A:"잘했어요! 훌륭해요!",B:"좋아요! 조금만 더!",C:"괜찮아요, 연습하면 돼요!",D:"다시 도전해봐요!"};
+  let uw=s.results.filter(r=>!r.correct).map(r=>r.word).filter((w,i,a)=>a.findIndex(x=>x.en===w.en)===i);
+
+  let els=[];
+
+  // Submit status
+  if(s.submitStatus!=="idle"){
+    let sc=s.submitStatus==="success"?"rgba(34,197,94,":"rgba(99,102,241,";
+    if(s.submitStatus==="error")sc="rgba(239,68,68,";
+    let txt=s.submitStatus==="sending"?"📡 결과 저장 중...":s.submitStatus==="success"?"✅ 결과가 저장되었습니다":"❌ 저장 실패";
+    let statusEl=h("div",{style:{padding:"10px 16px",borderRadius:"10px",marginBottom:"16px",textAlign:"center",fontSize:"13px",
+      background:sc+"0.1)",border:"1px solid "+sc+"0.2)",color:s.submitStatus==="success"?"#4ade80":s.submitStatus==="error"?"#f87171":"#a5b4fc"}},txt);
+    if(s.submitStatus==="error"){
+      statusEl.append(h("button",{style:{marginLeft:"8px",padding:"4px 10px",borderRadius:"6px",border:"1px solid rgba(239,68,68,0.3)",background:"transparent",color:"#f87171",fontSize:"12px",cursor:"pointer"},onClick:submitToSheets},"다시 시도"));
+    }
+    els.push(statusEl);
+  }
+
+  // Grade
+  els.push(h("div",{style:{textAlign:"center",marginBottom:"28px"}},
+    h("div",{style:{width:"90px",height:"90px",borderRadius:"50%",background:gc[gr]+"20",border:"3px solid "+gc[gr],display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 16px",boxShadow:"0 0 30px "+gc[gr]+"30"}},
+      h("span",{style:{fontSize:"42px",fontWeight:900,color:gc[gr]}},gr)),
+    h("h2",{style:{color:"#f1f5f9",fontSize:"22px",fontWeight:800,marginBottom:"4px"}},gm[gr]),
+    h("p",{className:"muted"},s.studentNumber+"번 "+s.studentName)));
+
+  // Stats
+  let stats=[{l:"정답률",v:acc+"%",c:"#818cf8"},{l:"맞은 개수",v:tc+"/"+TOTAL_QUESTIONS,c:"#22c55e"},{l:"도달 난이도",v:"Lv."+ml,c:LEVEL_COLORS[ml]}];
+  els.push(h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"10px",marginBottom:"24px"}},
+    ...stats.map(x=>h("div",{style:{padding:"16px 12px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",textAlign:"center"}},
+      h("div",{style:{color:x.c,fontSize:"22px",fontWeight:800}},x.v),h("div",{style:{color:"#64748b",fontSize:"12px",marginTop:"4px"}},x.l)))));
+
+  // Retry results
+  if(uw.length>0){
+    let tags=uw.map(w=>{
+      let att=s.retryResults.filter(r=>r.word.en===w.en);
+      let wc=att.filter(r=>!r.correct).length;
+      return h("span",{style:{padding:"6px 12px",borderRadius:"8px",background:wc===0?"rgba(34,197,94,0.1)":"rgba(251,191,36,0.1)",color:wc===0?"#4ade80":"#fbbf24",fontSize:"13px"}},w.en+" "+(wc===0?"✓":"("+wc+"회 재시도)"));
+    });
+    els.push(h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(251,191,36,0.06)",border:"1px solid rgba(251,191,36,0.15)",marginBottom:"20px"}},
+      h("p",{style:{color:"#fbbf24",fontSize:"13px",fontWeight:600,marginBottom:"6px"}},"🔄 재도전 결과"),
+      h("p",{className:"muted",style:{marginBottom:"12px"}},uw.length+"개 틀린 단어 → "+(s.retryRound===1?"1라운드":s.retryRound+"라운드")+" 만에 모두 정복!"),
+      h("div",{style:{display:"flex",flexWrap:"wrap",gap:"6px"}},...tags)));
+  }
+
+  // Level chart
+  let bars=s.levelHistory.map(lv=>h("div",{style:{flex:1,height:(lv/5*100)+"%",background:"linear-gradient(180deg,"+LEVEL_COLORS[lv]+","+LEVEL_COLORS[lv]+"60)",borderRadius:"3px 3px 0 0",minHeight:"8px"}}));
+  els.push(h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"20px"}},
+    h("p",{className:"muted",style:{fontWeight:600,marginBottom:"12px"}},"난이도 변화"),
+    h("div",{style:{display:"flex",alignItems:"flex-end",gap:"3px",height:"60px"}},...bars),
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"6px"}},h("span",{style:{color:"#475569",fontSize:"11px"}},"시작"),h("span",{style:{color:"#475569",fontSize:"11px"}},"종료"))));
+
+  // Detail
+  let rows=s.results.map(r=>h("div",{style:{display:"flex",alignItems:"center",gap:"10px",padding:"8px 12px",borderRadius:"8px",background:r.correct?"rgba(34,197,94,0.05)":"rgba(239,68,68,0.05)"}},
+    h("span",{style:{fontSize:"14px"}},r.correct?"✅":"❌"),
+    h("span",{style:{color:"#e2e8f0",fontSize:"14px",fontWeight:600,flex:1}},r.word.en),
+    h("span",{className:"muted",style:{fontSize:"12px"}},r.word.ko),
+    h("span",{style:{color:LEVEL_COLORS[r.level],fontSize:"11px",fontWeight:600,padding:"2px 6px",borderRadius:"4px",background:LEVEL_COLORS[r.level]+"15"}},"Lv."+r.level)));
+  els.push(h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"24px"}},
+    h("p",{className:"muted",style:{fontWeight:600,marginBottom:"10px"}},"문제별 결과"),h("div",{className:"gap-sm"},...rows)));
+
+  // Buttons
+  els.push(h("div",{style:{display:"flex",gap:"10px"}},
+    h("button",{className:"btn btn-ghost",style:{flex:1},onClick:()=>{state.screen="login";state.studentName="";state.studentNumber="";render()}},"처음으로"),
+    h("button",{className:"btn btn-primary",style:{flex:1},onClick:startQuiz},"다시 도전 →")));
+
+  let card=h("div",{className:"card"},...els);
+  app.append(card);
+}
+
+// ===== INIT =====
+render();
+</script>
+</body>
+</html>
