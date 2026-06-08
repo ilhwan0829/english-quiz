@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>내 퀴즈 기록 - 서울용동초등학교</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans KR',sans-serif;background:linear-gradient(135deg,#0f172a 0%,#1e293b 50%,#0f172a 100%);min-height:100vh;color:#e2e8f0}
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+.center{justify-content:center}
+.card{background:rgba(30,41,59,0.8);backdrop-filter:blur(20px);border:1px solid rgba(148,163,184,0.1);border-radius:24px;padding:40px 28px;width:100%;max-width:500px;box-shadow:0 25px 50px rgba(0,0,0,0.4)}
+input[type=text],input[type=number]{width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(148,163,184,0.2);background:rgba(15,23,42,0.6);color:#e2e8f0;font-size:16px;outline:none;font-family:inherit}
+input:focus{border-color:#818cf8}
+.btn{width:100%;padding:16px;border-radius:14px;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-primary{background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;box-shadow:0 8px 24px rgba(14,165,233,0.3)}
+.btn-ghost{background:transparent;border:1px solid rgba(148,163,184,0.2);color:#94a3b8;font-weight:600}
+.btn:disabled{background:rgba(100,116,139,0.2);color:#64748b;cursor:not-allowed;box-shadow:none}
+.label{color:#94a3b8;font-size:13px;font-weight:600;margin-bottom:6px;display:block}
+.muted{color:#94a3b8}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px}
+.stat-box{padding:16px 12px;border-radius:14px;background:rgba(15,23,42,0.5);border:1px solid rgba(148,163,184,0.1);text-align:center}
+.stat-val{font-size:22px;font-weight:800}
+.stat-lbl{color:#64748b;font-size:12px;margin-top:4px}
+.record-card{padding:16px;border-radius:14px;background:rgba(15,23,42,0.4);border:1px solid rgba(148,163,184,0.08);margin-bottom:10px;cursor:pointer;transition:all .15s}
+.record-card:hover{border-color:rgba(99,102,241,0.3);background:rgba(15,23,42,0.6)}
+.record-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.grade-badge{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:16px}
+.detail-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;margin-bottom:4px}
+.tag{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:600}
+.loading{text-align:center;padding:40px;color:#94a3b8}
+.empty{text-align:center;padding:40px}
+.chart-bar{display:flex;align-items:flex-end;gap:4px;height:80px;margin-top:8px}
+.chart-bar div{flex:1;border-radius:3px 3px 0 0;min-height:4px;transition:height .3s}
+.back-link{color:#94a3b8;font-size:13px;cursor:pointer;margin-bottom:16px;display:inline-flex;align-items:center;gap:4px}
+.back-link:hover{color:#e2e8f0}
+.no-record{padding:60px 20px;text-align:center}
+</style>
+</head>
+<body>
+<div id="app" class="center"></div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbwYdXg0_CxPl6mifOLExacje0iIbwX1Sktl4vf3lLANDzlTxGKhTWt44DLrRNJJ3KjQsg/exec";
+const LEVEL_COLORS = {1:"#22c55e",2:"#3b82f6",3:"#a855f7",4:"#f59e0b",5:"#ef4444"};
+const LEVEL_LABELS = {1:"3학년",2:"4학년",3:"5학년",4:"6학년",5:"심화"};
+const GRADE_COLORS = {S:"#fbbf24",A:"#22c55e",B:"#3b82f6",C:"#a855f7",D:"#ef4444"};
+
+let state = {screen:"login", number:"", name:"", records:[], selectedIdx:-1, loading:false, error:""};
+
+function h(tag,attrs,...kids){
+  let el=document.createElement(tag);
+  if(attrs)Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="style"&&typeof v==="object")Object.assign(el.style,v);
+    else if(k.startsWith("on"))el.addEventListener(k.slice(2).toLowerCase(),v);
+    else if(k==="className")el.className=v;
+    else if(k==="disabled")el.disabled=v;
+    else if(k==="placeholder")el.placeholder=v;
+    else if(k==="type")el.type=v;
+    else if(k==="value")el.value=v;
+    else el.setAttribute(k,v);
+  });
+  kids.flat().forEach(c=>{if(c!=null)el.append(typeof c==="string"||typeof c==="number"?document.createTextNode(String(c)):c)});
+  return el;
+}
+
+async function fetchRecords(){
+  state.loading=true; state.error=""; render();
+  try{
+    let url=API_URL+"?action=lookup&number="+encodeURIComponent(state.number)+"&name="+encodeURIComponent(state.name);
+    let res=await fetch(url);
+    let json=await res.json();
+    if(json.status==="success"){
+      state.records=json.records||[];
+      state.screen="list";
+    }else{
+      state.error=json.message||"조회 실패";
+    }
+  }catch(e){
+    state.error="네트워크 오류: "+e.message;
+  }
+  state.loading=false; render();
+}
+
+function render(){
+  let app=document.getElementById("app");
+  app.innerHTML="";
+  app.className=state.screen==="login"?"center":"";
+  if(state.screen==="login")renderLogin(app);
+  else if(state.screen==="list")renderList(app);
+  else if(state.screen==="detail")renderDetail(app);
+}
+
+function renderLogin(app){
+  let card=h("div",{className:"card",style:{maxWidth:"420px",padding:"48px 40px"}},
+    h("div",{style:{textAlign:"center",marginBottom:"36px"}},
+      h("div",{style:{fontSize:"48px",marginBottom:"12px"}},"📊"),
+      h("h1",{style:{fontSize:"26px",fontWeight:800,background:"linear-gradient(135deg,#38bdf8,#818cf8,#c084fc)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent"}},"내 퀴즈 기록"),
+      h("p",{className:"muted",style:{marginTop:"8px",fontSize:"14px"}},"서울용동초등학교 5학년 2반")
+    ),
+    h("div",{style:{display:"flex",flexDirection:"column",gap:"16px"}},
+      h("div",null,h("label",{className:"label"},"번호"),
+        h("input",{type:"number",value:state.number,placeholder:"예: 1",onInput:e=>{state.number=e.target.value}})),
+      h("div",null,h("label",{className:"label"},"이름"),
+        h("input",{type:"text",value:state.name,placeholder:"예: 홍길동",
+          onInput:e=>{state.name=e.target.value},
+          onKeydown:e=>{if(e.key==="Enter"&&state.number&&state.name)fetchRecords()}})),
+      h("button",{className:"btn btn-primary",style:{marginTop:"8px"},
+        disabled:!state.number.trim()||!state.name.trim()||state.loading,
+        onClick:fetchRecords},state.loading?"조회 중...":"내 기록 보기 →")
+    ),
+    ...(state.error?[h("div",{style:{marginTop:"16px",padding:"12px",borderRadius:"10px",background:"rgba(239,68,68,0.1)",border:"1px solid rgba(239,68,68,0.2)",color:"#f87171",fontSize:"13px",textAlign:"center"}},state.error)]:[]),
+    h("div",{style:{marginTop:"28px",padding:"16px",borderRadius:"12px",background:"rgba(14,165,233,0.08)",border:"1px solid rgba(14,165,233,0.15)"}},
+      h("p",{style:{color:"#7dd3fc",fontSize:"13px",lineHeight:"1.6"}},"퀴즈를 풀었던 번호와 이름을 입력하면\n나의 과제 수행 기록을 확인할 수 있어요."))
+  );
+  app.append(card);
+}
+
+function renderList(app){
+  let recs=state.records;
+  let card=h("div",{className:"card"});
+
+  // Back + title
+  card.append(
+    h("span",{className:"back-link",onClick:()=>{state.screen="login";render()}},"← 돌아가기"),
+    h("div",{style:{textAlign:"center",marginBottom:"24px"}},
+      h("h2",{style:{color:"#f1f5f9",fontSize:"22px",fontWeight:800,marginBottom:"4px"}},state.number+"번 "+state.name),
+      h("p",{className:"muted",style:{fontSize:"14px"}},"퀴즈 수행 기록"))
+  );
+
+  if(recs.length===0){
+    card.append(h("div",{className:"no-record"},
+      h("div",{style:{fontSize:"48px",marginBottom:"16px"}},"📭"),
+      h("p",{style:{color:"#94a3b8",fontSize:"16px",fontWeight:600,marginBottom:"8px"}},"아직 기록이 없어요!"),
+      h("p",{className:"muted",style:{fontSize:"14px"}},"퀴즈를 풀면 여기에 기록이 나타나요.")
+    ));
+    app.append(card);
+    return;
+  }
+
+  // Summary stats
+  let totalAttempts=recs.length;
+  let avgAcc=Math.round(recs.reduce((s,r)=>s+r.accuracy,0)/totalAttempts);
+  let bestGrade="D";
+  let gRank={S:5,A:4,B:3,C:2,D:1};
+  recs.forEach(r=>{if((gRank[r.grade]||0)>(gRank[bestGrade]||0))bestGrade=r.grade});
+  let maxLv=Math.max(...recs.map(r=>r.maxLevel));
+
+  card.append(h("div",{className:"stat-grid"},
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:"#818cf8"}},totalAttempts+"회"),h("div",{className:"stat-lbl"},"응시 횟수")),
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:"#22c55e"}},avgAcc+"%"),h("div",{className:"stat-lbl"},"평균 정답률")),
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:GRADE_COLORS[bestGrade]}},bestGrade),h("div",{className:"stat-lbl"},"최고 등급"))
+  ));
+
+  // Accuracy trend chart
+  if(recs.length>=2){
+    let chartBox=h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"20px"}},
+      h("p",{className:"muted",style:{fontWeight:600,fontSize:"13px",marginBottom:"4px"}},"정답률 변화 추이"));
+    let bars=h("div",{className:"chart-bar"});
+    recs.forEach((r,i)=>{
+      let color=r.accuracy>=90?"#22c55e":r.accuracy>=75?"#3b82f6":r.accuracy>=60?"#a855f7":"#ef4444";
+      let bar=h("div",{style:{height:Math.max(r.accuracy,5)+"%",background:"linear-gradient(180deg,"+color+","+color+"60)"},title:(i+1)+"회차: "+r.accuracy+"%"});
+      bars.append(bar);
+    });
+    chartBox.append(bars);
+    let labels=h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"6px"}},
+      h("span",{style:{color:"#475569",fontSize:"11px"}},"1회차"),
+      h("span",{style:{color:"#475569",fontSize:"11px"}},recs.length+"회차"));
+    chartBox.append(labels);
+    card.append(chartBox);
+  }
+
+  // Record list
+  card.append(h("p",{className:"muted",style:{fontWeight:600,fontSize:"13px",marginBottom:"12px"}},"📋 수행 기록 (최신순)"));
+
+  let sorted=[...recs].reverse();
+  sorted.forEach((r,i)=>{
+    let origIdx=recs.length-1-i;
+    let gc=GRADE_COLORS[r.grade]||"#94a3b8";
+    let rc=h("div",{className:"record-card",onClick:()=>{state.selectedIdx=origIdx;state.screen="detail";render()}},
+      h("div",{className:"record-header"},
+        h("div",{style:{display:"flex",alignItems:"center",gap:"12px"}},
+          h("div",{className:"grade-badge",style:{background:gc+"20",border:"2px solid "+gc,color:gc}},r.grade),
+          h("div",null,
+            h("div",{style:{fontSize:"14px",fontWeight:700,color:"#e2e8f0"}},r.date),
+            h("div",{className:"muted",style:{fontSize:"12px"}},r.time))),
+        h("div",{style:{textAlign:"right"}},
+          h("div",{style:{fontSize:"18px",fontWeight:800,color:"#818cf8"}},r.accuracy+"%"),
+          h("div",{className:"muted",style:{fontSize:"11px"}},r.correct+"/"+r.total))
+      ),
+      h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"8px"}},
+        h("span",{className:"tag",style:{background:"rgba(99,102,241,0.1)",color:"#a5b4fc"}},"Lv."+r.maxLevel+" 도달"),
+        ...(r.retryRounds>0?[h("span",{className:"tag",style:{background:"rgba(251,191,36,0.1)",color:"#fbbf24"}},"재도전 "+r.retryRounds+"R")]:[]),
+        ...(r.wrongWords?[h("span",{className:"tag",style:{background:"rgba(239,68,68,0.1)",color:"#fca5a5"}},"틀린 "+r.wrongWords.split(",").length+"개")]:[])),
+      h("div",{className:"muted",style:{fontSize:"11px",marginTop:"8px",textAlign:"right"}},"상세보기 →")
+    );
+    card.append(rc);
+  });
+
+  // Back to quiz link
+  card.append(h("div",{style:{marginTop:"20px",display:"flex",gap:"10px"}},
+    h("button",{className:"btn btn-ghost",style:{flex:1},onClick:()=>{state.screen="login";render()}},"돌아가기"),
+    h("a",{href:"index.html",style:{flex:1,display:"block"}},
+      h("button",{className:"btn btn-primary",style:{width:"100%"}},"퀴즈 풀러가기 →"))
+  ));
+
+  app.append(card);
+}
+
+function renderDetail(app){
+  let r=state.records[state.selectedIdx];
+  if(!r){state.screen="list";render();return}
+
+  let card=h("div",{className:"card"});
+  let gc=GRADE_COLORS[r.grade]||"#94a3b8";
+
+  card.append(
+    h("span",{className:"back-link",onClick:()=>{state.screen="list";render()}},"← 기록 목록"),
+    // Grade + date header
+    h("div",{style:{textAlign:"center",marginBottom:"24px"}},
+      h("div",{className:"grade-badge",style:{width:"70px",height:"70px",margin:"0 auto 12px",background:gc+"20",border:"3px solid "+gc,color:gc,fontSize:"32px"}},r.grade),
+      h("h2",{style:{color:"#f1f5f9",fontSize:"20px",fontWeight:800,marginBottom:"4px"}},r.date),
+      h("p",{className:"muted",style:{fontSize:"13px"}},r.time+" · "+(state.selectedIdx+1)+"회차"))
+  );
+
+  // Stats
+  card.append(h("div",{className:"stat-grid"},
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:"#818cf8"}},r.accuracy+"%"),h("div",{className:"stat-lbl"},"정답률")),
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:"#22c55e"}},r.correct+"/"+r.total),h("div",{className:"stat-lbl"},"맞은 개수")),
+    h("div",{className:"stat-box"},h("div",{className:"stat-val",style:{color:LEVEL_COLORS[r.maxLevel]||"#fff"}},"Lv."+r.maxLevel),h("div",{className:"stat-lbl"},"도달 난이도"))
+  ));
+
+  // Level history chart
+  if(r.levelHistory){
+    let lvls=r.levelHistory.split("→").map(Number).filter(n=>!isNaN(n));
+    if(lvls.length>0){
+      let chartBox=h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"20px"}},
+        h("p",{className:"muted",style:{fontWeight:600,fontSize:"13px",marginBottom:"12px"}},"난이도 변화"));
+      let bars=h("div",{className:"chart-bar"});
+      lvls.forEach(lv=>{
+        bars.append(h("div",{style:{height:(lv/5*100)+"%",background:"linear-gradient(180deg,"+(LEVEL_COLORS[lv]||"#818cf8")+","+(LEVEL_COLORS[lv]||"#818cf8")+"60)"}}));
+      });
+      chartBox.append(bars,
+        h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"6px"}},
+          h("span",{style:{color:"#475569",fontSize:"11px"}},"시작"),
+          h("span",{style:{color:"#475569",fontSize:"11px"}},"종료")));
+      card.append(chartBox);
+    }
+  }
+
+  // Retry info
+  if(r.retryRounds>0){
+    card.append(h("div",{style:{padding:"16px 20px",borderRadius:"14px",background:"rgba(251,191,36,0.06)",border:"1px solid rgba(251,191,36,0.15)",marginBottom:"20px"}},
+      h("p",{style:{color:"#fbbf24",fontSize:"13px",fontWeight:600,marginBottom:"6px"}},"🔄 재도전 "+r.retryRounds+"라운드"),
+      h("p",{className:"muted",style:{fontSize:"13px"}},"틀린 단어를 "+r.retryRounds+"라운드 만에 모두 정복!")
+    ));
+  }
+
+  // Wrong words
+  if(r.wrongWords){
+    let words=r.wrongWords.split(",").map(w=>w.trim()).filter(Boolean);
+    if(words.length>0){
+      let tagEls=words.map(w=>h("span",{style:{padding:"6px 12px",borderRadius:"8px",background:"rgba(239,68,68,0.1)",color:"#fca5a5",fontSize:"13px"}},w));
+      card.append(h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"20px"}},
+        h("p",{className:"muted",style:{fontWeight:600,fontSize:"13px",marginBottom:"10px"}},"📝 틀린 단어"),
+        h("div",{style:{display:"flex",flexWrap:"wrap",gap:"6px"}},...tagEls)));
+    }
+  }
+
+  // Problem details
+  if(r.details){
+    let items=r.details.split("|").map(s=>s.trim()).filter(Boolean);
+    if(items.length>0){
+      let detailEls=items.map(item=>{
+        let correct=item.startsWith("O");
+        return h("div",{className:"detail-row",style:{background:correct?"rgba(34,197,94,0.05)":"rgba(239,68,68,0.05)"}},
+          h("span",{style:{fontSize:"13px"}},correct?"✅":"❌"),
+          h("span",{style:{color:"#e2e8f0",fontSize:"13px",fontWeight:600,flex:1}},item.slice(2)));
+      });
+      card.append(h("div",{style:{padding:"20px",borderRadius:"14px",background:"rgba(15,23,42,0.5)",border:"1px solid rgba(148,163,184,0.1)",marginBottom:"24px"}},
+        h("p",{className:"muted",style:{fontWeight:600,fontSize:"13px",marginBottom:"10px"}},"문제별 결과"),
+        ...detailEls));
+    }
+  }
+
+  card.append(h("button",{className:"btn btn-ghost",onClick:()=>{state.screen="list";render()}},"← 기록 목록으로"));
+  app.append(card);
+}
+
+render();
+</script>
+</body>
+</html>
